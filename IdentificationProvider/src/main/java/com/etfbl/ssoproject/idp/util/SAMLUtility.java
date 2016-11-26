@@ -8,12 +8,8 @@ import org.opensaml.common.SAMLObjectBuilder;
 import org.opensaml.common.SAMLVersion;
 import org.opensaml.common.binding.BasicSAMLMessageContext;
 import org.opensaml.common.binding.SAMLMessageContext;
-import org.opensaml.saml2.core.AuthnRequest;
-import org.opensaml.saml2.core.Issuer;
-import org.opensaml.saml2.core.NameIDPolicy;
-import org.opensaml.saml2.core.impl.AuthnRequestBuilder;
-import org.opensaml.saml2.core.impl.IssuerBuilder;
-import org.opensaml.saml2.core.impl.NameIDPolicyBuilder;
+import org.opensaml.saml2.core.*;
+import org.opensaml.saml2.core.impl.*;
 import org.opensaml.saml2.metadata.Endpoint;
 import org.opensaml.xml.Configuration;
 import org.opensaml.xml.XMLObject;
@@ -47,10 +43,11 @@ import java.util.zip.InflaterInputStream;
 public class SAMLUtility {
 
     public static final String NAME_ID_POLICY_FORMAT_EMAIL_ADDRESS = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress";
+    public static final String SUBJECT_CONFIMRATION_METHOD_BEARER = "urn:oasis:names:tc:SAML:2.0:cm:bearer";
 
     private XMLObjectBuilderFactory builderFactory = Configuration.getBuilderFactory();
 
-    public String readAuthNRequest(String request){
+    public AuthnRequest readAuthNRequest(String request){
         try {
             DefaultBootstrap.bootstrap();
 
@@ -80,12 +77,12 @@ public class SAMLUtility {
             System.out.println("ID : " + authnRequest.getID());
             System.out.println("Name ID policy : " + authnRequest.getNameIDPolicy().getFormat());
 
-            return authnRequest.getIssuer().getValue() + "\r\n" + authnRequest.getID();
+            return authnRequest;
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return "unknown";
+        return null;
     }
 
     /*
@@ -109,7 +106,7 @@ public class SAMLUtility {
         AuthnRequest authnRequest = authnRequestBuilder.buildObject();
 
         // ID
-        authnRequest.setID("test1");
+        authnRequest.setID("identifier_1");
 
         // SAML Version - REQ
         authnRequest.setVersion(SAMLVersion.VERSION_20);
@@ -135,12 +132,119 @@ public class SAMLUtility {
         return authnRequest;
     }
 
-    public static String prepareAuthnRequestForSending(AuthnRequest authnRequest) {
+    public static Response createSamlResponse(String requestIssuerUrl, String statusCodeUri) {
+        try {
+            DefaultBootstrap.bootstrap();
+        } catch (Exception e ){
+            e.printStackTrace();
+        }
+
+        DateTime issueDate = DateTime.now();
+        DateTime notOnOrAfterDate = issueDate.plusMinutes(5);
+        String issuerUrl = "localhost:8081";
+
+        // create empty response
+        ResponseBuilder responseBuilder = new ResponseBuilder();
+        Response response = responseBuilder.buildObject();
+
+        // set basic attributes
+        response.setID("identifier_2");
+        response.setVersion(SAMLVersion.VERSION_20);
+        response.setInResponseTo("identifier_1");
+        response.setIssueInstant(issueDate.plusSeconds(5));
+        response.setDestination(requestIssuerUrl + "/saml");
+
+        // Build issuer
+        IssuerBuilder issuerBuilder = new IssuerBuilder();
+        Issuer issuer = issuerBuilder.buildObject();
+        issuer.setValue(issuerUrl);
+
+        response.setIssuer(issuer);
+
+        // build status with status code
+        StatusBuilder statusBuilder = new StatusBuilder();
+        Status status = statusBuilder.buildObject();
+        StatusCodeBuilder statusCodeBuilder = new StatusCodeBuilder();
+        StatusCode statusCode = statusCodeBuilder.buildObject();
+        statusCode.setValue(statusCodeUri);
+        status.setStatusCode(statusCode);
+
+        // build assertion
+        AssertionBuilder assertionBuilder = new AssertionBuilder();
+        Assertion assertion = assertionBuilder.buildObject();
+        assertion.setID("identifier_3");
+        assertion.setVersion(SAMLVersion.VERSION_20);
+        assertion.setIssueInstant(issueDate.plusSeconds(5));
+
+        Issuer issuer1 = issuerBuilder.buildObject();
+        issuer1.setValue(issuerUrl);
+        assertion.setIssuer(issuer1);
+
+        // build subject
+        SubjectBuilder subjectBuilder = new SubjectBuilder();
+        Subject subject = subjectBuilder.buildObject();
+
+        //build name id
+        NameIDBuilder nameIDBuilder = new NameIDBuilder();
+        NameID nameID = nameIDBuilder.buildObject();
+        nameID.setValue(NAME_ID_POLICY_FORMAT_EMAIL_ADDRESS);
+
+        subject.setNameID(nameID);
+
+        SubjectConfirmationBuilder subjectConfirmationBuilder = new SubjectConfirmationBuilder();
+        SubjectConfirmation subjectConfirmation = subjectConfirmationBuilder.buildObject();
+        subjectConfirmation.setMethod(SUBJECT_CONFIMRATION_METHOD_BEARER);
+
+        SubjectConfirmationDataBuilder subjectConfirmationDataBuilder = new SubjectConfirmationDataBuilder();
+        SubjectConfirmationData subjectConfirmationData = subjectConfirmationDataBuilder.buildObject();
+        subjectConfirmationData.setInResponseTo("identifier_1");
+        subjectConfirmationData.setRecipient(requestIssuerUrl + "/saml");
+        subjectConfirmationData.setNotOnOrAfter(notOnOrAfterDate);
+
+        subjectConfirmation.setSubjectConfirmationData(subjectConfirmationData);
+        subject.getSubjectConfirmations().add(subjectConfirmation);
+
+        // build conditions
+        ConditionsBuilder conditionsBuilder = new ConditionsBuilder();
+        Conditions conditions = conditionsBuilder.buildObject();
+        conditions.setNotBefore(issueDate.minusMinutes(5));
+        conditions.setNotOnOrAfter(notOnOrAfterDate);
+
+
+        // build audience restriction
+        AudienceRestrictionBuilder audienceRestrictionBuilder = new AudienceRestrictionBuilder();
+        AudienceRestriction audienceRestriction = audienceRestrictionBuilder.buildObject();
+
+        // audience builder
+        AudienceBuilder audienceBuilder = new AudienceBuilder();
+        Audience audience = audienceBuilder.buildObject();
+        audience.setAudienceURI(requestIssuerUrl);
+
+        audienceRestriction.getAudiences().add(audience);
+
+        conditions.getAudienceRestrictions().add(audienceRestriction);
+
+        AuthnStatementBuilder authnStatementBuilder = new AuthnStatementBuilder();
+        AuthnStatement authnStatement = authnStatementBuilder.buildObject();
+        authnStatement.setAuthnInstant(issueDate);
+        authnStatement.setSessionIndex("identifier_3");
+
+        assertion.setConditions(conditions);
+
+        assertion.setSubject(subject);
+
+        response.getAssertions().add(assertion);
+
+        return response;
+    }
+
+    public static String prepareXmlObjectForSending(XMLObject xmlObject) {
         MarshallerFactory marshallerFactory = Configuration.getMarshallerFactory();
-        Marshaller marshaller = marshallerFactory.getMarshaller(authnRequest);
+
+        Marshaller marshaller = marshallerFactory.getMarshaller(xmlObject);
 
         try {
-            Element authDom = marshaller.marshall(authnRequest);
+            Element authDom = marshaller.marshall(xmlObject);
 
             StringWriter stringWriter = new StringWriter();
             XMLHelper.writeNode(authDom, stringWriter);

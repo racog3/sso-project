@@ -11,6 +11,7 @@ import org.opensaml.common.binding.SAMLMessageContext;
 import org.opensaml.saml2.core.AuthnRequest;
 import org.opensaml.saml2.core.Issuer;
 import org.opensaml.saml2.core.NameIDPolicy;
+import org.opensaml.saml2.core.Response;
 import org.opensaml.saml2.core.impl.AuthnRequestBuilder;
 import org.opensaml.saml2.core.impl.IssuerBuilder;
 import org.opensaml.saml2.core.impl.NameIDPolicyBuilder;
@@ -51,11 +52,11 @@ public class SAMLUtility {
 
     private XMLObjectBuilderFactory builderFactory = Configuration.getBuilderFactory();
 
-    public String readAuthNRequest(String request){
+    public static Response convertToSamlResponse(String response){
         try {
             DefaultBootstrap.bootstrap();
 
-            String decoded = URLDecoder.decode(request,"UTF-8");
+            String decoded = URLDecoder.decode(response,"UTF-8");
 
             byte[] decodedSamlAsBytes = Base64.decode(decoded);
 
@@ -74,18 +75,17 @@ public class SAMLUtility {
             Unmarshaller unmarshaller = unmarshallerFactory.getUnmarshaller(element);
 
             XMLObject requestXmlObject = unmarshaller.unmarshall(element);
-            AuthnRequest authnRequest = (AuthnRequest) requestXmlObject;
+            Response samlResponse = (Response) requestXmlObject;
 
-            System.out.println("Issuer : " + authnRequest.getIssuer());
-            System.out.println("ID : " + authnRequest.getID());
-            System.out.println("Name ID policy : " + authnRequest.getNameIDPolicy().getFormat());
+            System.out.println("Issuer : " + samlResponse.getIssuer());
+            System.out.println("ID : " + samlResponse.getID());
 
-            return authnRequest.getIssuer().getValue() + "\r\n" + authnRequest.getID();
+            return samlResponse;
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return "unknown";
+        return null;
     }
 
     /*
@@ -120,7 +120,7 @@ public class SAMLUtility {
         // Build issuer
         IssuerBuilder issuerBuilder = new IssuerBuilder();
         Issuer issuer = issuerBuilder.buildObject();
-        issuer.setValue("sp.localhost");
+        issuer.setValue("http://localhost:8080");
 
         authnRequest.setIssuer(issuer);
 
