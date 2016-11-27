@@ -1,5 +1,6 @@
 package com.etfbl.ssoproject.sp.util;
 
+import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.opensaml.DefaultBootstrap;
@@ -36,6 +37,8 @@ import javax.xml.namespace.QName;
 import java.io.*;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.util.Map;
+import java.util.UUID;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.Inflater;
@@ -49,6 +52,7 @@ public class SAMLUtility {
 
     public static final String NAME_ID_POLICY_FORMAT_EMAIL_ADDRESS = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress";
     public static final String IDP_ADDRESS = "http://localhost:8081";
+    private static Map<String,String> relayStates = new HashedMap();
 
     private XMLObjectBuilderFactory builderFactory = Configuration.getBuilderFactory();
 
@@ -230,5 +234,18 @@ public class SAMLUtility {
              /*ignore*/
             }
         }
+    }
+
+    public static String saveRelayState(String targetUrl) {
+        UUID uuid = UUID.randomUUID();
+        String key = uuid.toString();
+        relayStates.put(key, targetUrl);
+        return key;
+    }
+
+    public static String getRelayStateByKey(String key) {
+        String targetUrl = relayStates.get(key);
+        relayStates.remove(key);
+        return targetUrl;
     }
 }

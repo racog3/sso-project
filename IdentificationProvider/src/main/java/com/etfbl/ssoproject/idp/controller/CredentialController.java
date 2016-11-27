@@ -50,7 +50,7 @@ public class CredentialController {
     }
 
     @RequestMapping("/Redirect")
-    public String processAuthNRequest(Model model, @RequestParam("SAMLRequest") String authNRequest) {
+    public String processAuthNRequest(Model model, @RequestParam("SAMLRequest") String authNRequest, @RequestParam("RelayState") String relayState) {
         AuthnRequest authnRequest = samlUtility.readAuthNRequest(authNRequest);
         String issuerUrl = authnRequest.getIssuer().getValue();
         Response samlResponse = SAMLUtility.createSamlResponse(issuerUrl, StatusCode.SUCCESS_URI);
@@ -58,6 +58,7 @@ public class CredentialController {
 
         model.addAttribute("issuerUrl", issuerUrl);
         model.addAttribute("SAMLResponse", samlResponseString);
+        model.addAttribute("RelayState", relayState);
         return "redirect";
     }
 }

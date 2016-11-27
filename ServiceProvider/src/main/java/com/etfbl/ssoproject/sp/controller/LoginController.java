@@ -1,19 +1,21 @@
 package com.etfbl.ssoproject.sp.controller;
 
 import com.etfbl.ssoproject.sp.util.SAMLUtility;
+import org.apache.catalina.servlet4preview.http.HttpServletRequest;
 import org.opensaml.saml2.core.AuthnRequest;
 import org.opensaml.saml2.core.Response;
-import org.opensaml.saml2.core.StatusCode;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
+import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -26,15 +28,22 @@ import java.util.Collection;
 public class LoginController {
 
     @RequestMapping(value = "/login", method = RequestMethod.GET)
-    public String login() {
+    public String login(HttpServletRequest request, HttpServletResponse response) {
         AuthnRequest sampleReq = SAMLUtility.createSamlAuthNRequest();
         String authNRequest = SAMLUtility.prepareAuthnRequestForSending(sampleReq);
-        String redirectUrl = SAMLUtility.IDP_ADDRESS + "/Redirect?SAMLRequest=" + authNRequest;
+
+        // Get requested URL
+        SavedRequest savedRequest =
+                new HttpSessionRequestCache().getRequest(request, response);
+
+        String relayState = SAMLUtility.saveRelayState(savedRequest.getRedirectUrl());
+
+        String redirectUrl = SAMLUtility.IDP_ADDRESS + "/Redirect?SAMLRequest=" + authNRequest + "&RelayState=" + relayState;
         return "redirect:" + redirectUrl;
     }
 
     @RequestMapping(value = "/saml", method = RequestMethod.POST)
-    public String loginReturn(@RequestParam("SAMLResponse")String samlResponseString) {
+    public String loginReturn(@RequestParam("SAMLResponse")String samlResponseString, @RequestParam("RelayState") String relayState) {
 
         Response samlResponse = SAMLUtility.convertToSamlResponse(samlResponseString);
         System.out.println("RESPONSE TO: : " + samlResponse.getInResponseTo());
@@ -45,7 +54,11 @@ public class LoginController {
         Authentication auth =
                 new UsernamePasswordAuthenticationToken(username, null, getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(auth);
-        return "redirect:greeting";
+
+        // Get target url
+        String targetUrl = SAMLUtility.getRelayStateByKey(relayState);
+
+        return "redirect:" + targetUrl;
     }
 
     @RequestMapping(value = "/saml", method = RequestMethod.GET)

@@ -10,6 +10,7 @@ You have been successfully logged in and you'll be automatically redirected to t
 </div>
 <form th:action="${issuerUrl + '/saml'}" method="post">
     <input type="hidden" name="SAMLResponse" th:value="${SAMLResponse}"/>
+    <input type="hidden" name="RelayState" th:value="${RelayState}"/>
     <div><input type="submit" value="Submit"/></div>
 </form>
 </body>
