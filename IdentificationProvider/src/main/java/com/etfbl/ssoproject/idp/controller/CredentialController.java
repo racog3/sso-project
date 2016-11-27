@@ -7,6 +7,10 @@ import org.opensaml.saml2.core.AuthnRequest;
 import org.opensaml.saml2.core.Response;
 import org.opensaml.saml2.core.StatusCode;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -53,7 +57,11 @@ public class CredentialController {
     public String processAuthNRequest(Model model, @RequestParam("SAMLRequest") String authNRequest, @RequestParam("RelayState") String relayState) {
         AuthnRequest authnRequest = samlUtility.readAuthNRequest(authNRequest);
         String issuerUrl = authnRequest.getIssuer().getValue();
-        Response samlResponse = SAMLUtility.createSamlResponse(issuerUrl, StatusCode.SUCCESS_URI);
+
+        User user = (User)SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = user.getUsername().toString();
+
+        Response samlResponse = SAMLUtility.createSamlResponse(issuerUrl, username ,StatusCode.SUCCESS_URI);
         String samlResponseString = SAMLUtility.prepareXmlObjectForSending(samlResponse);
 
         model.addAttribute("issuerUrl", issuerUrl);

@@ -1,14 +1,9 @@
 package com.etfbl.ssoproject.sp.util;
 
 import org.apache.commons.collections.map.HashedMap;
-import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.opensaml.DefaultBootstrap;
-import org.opensaml.common.SAMLObject;
-import org.opensaml.common.SAMLObjectBuilder;
 import org.opensaml.common.SAMLVersion;
-import org.opensaml.common.binding.BasicSAMLMessageContext;
-import org.opensaml.common.binding.SAMLMessageContext;
 import org.opensaml.saml2.core.AuthnRequest;
 import org.opensaml.saml2.core.Issuer;
 import org.opensaml.saml2.core.NameIDPolicy;
@@ -16,7 +11,6 @@ import org.opensaml.saml2.core.Response;
 import org.opensaml.saml2.core.impl.AuthnRequestBuilder;
 import org.opensaml.saml2.core.impl.IssuerBuilder;
 import org.opensaml.saml2.core.impl.NameIDPolicyBuilder;
-import org.opensaml.saml2.metadata.Endpoint;
 import org.opensaml.xml.Configuration;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.XMLObjectBuilderFactory;
@@ -31,9 +25,6 @@ import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import javax.xml.namespace.QName;
 import java.io.*;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -53,6 +44,7 @@ public class SAMLUtility {
     public static final String NAME_ID_POLICY_FORMAT_EMAIL_ADDRESS = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress";
     public static final String IDP_ADDRESS = "http://localhost:8081";
     private static Map<String,String> relayStates = new HashedMap();
+    private static Map<String,AuthnRequest> authnRequestMap = new HashedMap();
 
     private XMLObjectBuilderFactory builderFactory = Configuration.getBuilderFactory();
 
@@ -100,7 +92,7 @@ public class SAMLUtility {
     - AssertionConsumerServiceIndex
     - AttributeConsumingServiceIndex
      */
-    public static AuthnRequest createSamlAuthNRequest() {
+    public static AuthnRequest createSamlAuthNRequest(String issuerUrl) {
 
         try {
             DefaultBootstrap.bootstrap();
@@ -112,8 +104,11 @@ public class SAMLUtility {
         AuthnRequestBuilder authnRequestBuilder = new AuthnRequestBuilder();
         AuthnRequest authnRequest = authnRequestBuilder.buildObject();
 
+        // Generate random UUID and append it to 'id' (since AuthnRequest can't start with number)
+        String requestID = "id" + UUID.randomUUID().toString();
+
         // ID
-        authnRequest.setID("test1");
+        authnRequest.setID(requestID);
 
         // SAML Version - REQ
         authnRequest.setVersion(SAMLVersion.VERSION_20);
@@ -124,7 +119,7 @@ public class SAMLUtility {
         // Build issuer
         IssuerBuilder issuerBuilder = new IssuerBuilder();
         Issuer issuer = issuerBuilder.buildObject();
-        issuer.setValue("http://localhost:8080");
+        issuer.setValue(issuerUrl);
 
         authnRequest.setIssuer(issuer);
 
@@ -135,6 +130,9 @@ public class SAMLUtility {
         nameIDPolicy.setAllowCreate(true);
 
         authnRequest.setNameIDPolicy(nameIDPolicy);
+
+        // save authnrequest to the map so it can be used on response validation
+        authnRequestMap.put(requestID, authnRequest);
 
         return authnRequest;
     }
@@ -170,34 +168,6 @@ public class SAMLUtility {
         }
 
         return null;
-    }
-
-    public void doAuthenticationRedirect(HttpServletResponse response, final HttpSession httpSession){
-        AuthnRequest authnRequest = createSamlAuthNRequest();
-
-        SAMLMessageContext<?, AuthnRequest, ?> context =  SAMLUtility.makeSamlMessageContext();
-
-        //context.setPeerEntityEndpoint();
-        context.setOutboundSAMLMessage(authnRequest);
-    }
-
-    public static <TI extends SAMLObject, TO extends SAMLObject, TN extends SAMLObject>
-    SAMLMessageContext<TI, TO, TN> makeSamlMessageContext() {
-        return new BasicSAMLMessageContext<TI, TO, TN>();
-    }
-
-    public Endpoint generateEndpoint(QName service, String location, String responseLocation) {
-
-        SAMLObjectBuilder<Endpoint> endpointBuilder = (SAMLObjectBuilder<Endpoint>) builderFactory.getBuilder(service);
-        Endpoint samlEndpoint = endpointBuilder.buildObject();
-
-        samlEndpoint.setLocation(location);
-
-        // this does not have to be set
-        if (StringUtils.isNotEmpty(responseLocation))
-            samlEndpoint.setResponseLocation(responseLocation);
-
-        return samlEndpoint;
     }
 
     private static byte[] inflate(byte[] bytes, boolean nowrap) throws Exception {

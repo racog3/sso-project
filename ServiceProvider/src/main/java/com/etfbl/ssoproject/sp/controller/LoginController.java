@@ -29,7 +29,11 @@ public class LoginController {
 
     @RequestMapping(value = "/login", method = RequestMethod.GET)
     public String login(HttpServletRequest request, HttpServletResponse response) {
-        AuthnRequest sampleReq = SAMLUtility.createSamlAuthNRequest();
+
+        // TODO could be extracted to the method in the SAMLUtility class
+        String serverAddress = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
+
+        AuthnRequest sampleReq = SAMLUtility.createSamlAuthNRequest(serverAddress);
         String authNRequest = SAMLUtility.prepareAuthnRequestForSending(sampleReq);
 
         // Get requested URL
@@ -50,7 +54,9 @@ public class LoginController {
 
         String username = samlResponse.getAssertions().get(0).getSubject().getNameID().getValue();
 
-        // do the response validation
+        // TODO Implement SAML response validation
+
+        // Authenticate the user
         Authentication auth =
                 new UsernamePasswordAuthenticationToken(username, null, getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(auth);
@@ -58,6 +64,7 @@ public class LoginController {
         // Get target url
         String targetUrl = SAMLUtility.getRelayStateByKey(relayState);
 
+        // Redirect the user to the requested resource
         return "redirect:" + targetUrl;
     }
 

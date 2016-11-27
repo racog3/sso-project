@@ -132,7 +132,7 @@ public class SAMLUtility {
         return authnRequest;
     }
 
-    public static Response createSamlResponse(String requestIssuerUrl, String statusCodeUri) {
+    public static Response createSamlResponse(String requestIssuerUrl, String userEmailAddress,String statusCodeUri) {
         try {
             DefaultBootstrap.bootstrap();
         } catch (Exception e ){
@@ -187,7 +187,8 @@ public class SAMLUtility {
         //build name id
         NameIDBuilder nameIDBuilder = new NameIDBuilder();
         NameID nameID = nameIDBuilder.buildObject();
-        nameID.setValue(NAME_ID_POLICY_FORMAT_EMAIL_ADDRESS);
+        nameID.setFormat(NAME_ID_POLICY_FORMAT_EMAIL_ADDRESS);
+        nameID.setValue(userEmailAddress);
 
         subject.setNameID(nameID);
 
