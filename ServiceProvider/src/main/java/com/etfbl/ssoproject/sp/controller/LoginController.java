@@ -2,8 +2,10 @@ package com.etfbl.ssoproject.sp.controller;
 
 import com.etfbl.ssoproject.sp.util.SAMLUtility;
 import org.apache.catalina.servlet4preview.http.HttpServletRequest;
-import org.opensaml.saml2.core.AuthnRequest;
-import org.opensaml.saml2.core.Response;
+import org.opensaml.saml2.core.*;
+import org.opensaml.xml.XMLObject;
+import org.opensaml.xml.schema.XSAny;
+import org.opensaml.xml.schema.XSString;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 
 /**
@@ -56,9 +59,26 @@ public class LoginController {
 
         // TODO Implement SAML response validation
 
+        List<String> roles = new ArrayList<>();
+        // Extract authorities from attribute statement
+        for (Assertion assertion : samlResponse.getAssertions()) {
+            Assertion assertion1 = assertion;
+            if (assertion.getID().equals("identifier_3")) { // ? it should be 3 not 2
+                // TODO fix this to get it by ID or something
+                for (Attribute attribute : assertion.getAttributeStatements().get(0).getAttributes()) {
+                    if (attribute.getName().equals("role")) {
+                        for (XMLObject attributeValue : attribute.getAttributeValues()) {
+                            roles.add(((XSAny) attributeValue).getTextContent());
+                        }
+                    }
+                }
+
+            }
+        }
+
         // Authenticate the user
         Authentication auth =
-                new UsernamePasswordAuthenticationToken(username, null, getAuthorities());
+                new UsernamePasswordAuthenticationToken(username, null, setAuthorities(roles));
         SecurityContextHolder.getContext().setAuthentication(auth);
 
         // Get target url
@@ -68,24 +88,19 @@ public class LoginController {
         return "redirect:" + targetUrl;
     }
 
-    @RequestMapping(value = "/saml", method = RequestMethod.GET)
-    public String loginReturn2() {
-        Authentication auth =
-                new UsernamePasswordAuthenticationToken("user", null, getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(auth);
-        return "redirect:greeting";
-    }
-
-    public Collection<GrantedAuthority> getAuthorities() {
-        //make everyone ROLE_USER
+    public Collection<GrantedAuthority> setAuthorities(List<String> authorities) {
         Collection<GrantedAuthority> grantedAuthorities = new ArrayList<>();
-        GrantedAuthority grantedAuthority = new GrantedAuthority() {
-            //anonymous inner type
-            public String getAuthority() {
-                return "ROLE_USER";
-            }
-        };
-        grantedAuthorities.add(grantedAuthority);
+
+        for (String authority : authorities) {
+            GrantedAuthority grantedAuthority = new GrantedAuthority() {
+                //anonymous inner type
+                public String getAuthority() {
+                    return authority;
+                }
+            };
+            grantedAuthorities.add(grantedAuthority);
+        }
+
         return grantedAuthorities;
     }
 

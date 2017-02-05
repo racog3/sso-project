@@ -17,6 +17,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         http
                 .authorizeRequests()
                 .antMatchers("/", "/saml").permitAll()
+                .antMatchers("/greeting").hasRole("USER")
                 .anyRequest().authenticated()
                 .and()
                 .csrf().ignoringAntMatchers("/saml")
