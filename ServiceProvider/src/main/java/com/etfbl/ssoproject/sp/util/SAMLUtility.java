@@ -42,7 +42,7 @@ import java.util.zip.InflaterInputStream;
 public class SAMLUtility {
 
     public static final String NAME_ID_POLICY_FORMAT_EMAIL_ADDRESS = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress";
-    public static final String IDP_ADDRESS = "http://localhost:8081";
+    public static final String IDP_ADDRESS = "http://localhost:8080/sso";
     private static Map<String,String> relayStates = new HashedMap();
     private static Map<String,AuthnRequest> authnRequestMap = new HashedMap();
 

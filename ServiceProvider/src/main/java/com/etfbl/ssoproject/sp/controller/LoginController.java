@@ -31,7 +31,7 @@ public class LoginController {
     public String login(HttpServletRequest request, HttpServletResponse response) {
 
         // TODO could be extracted to the method in the SAMLUtility class
-        String serverAddress = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
+        String serverAddress = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
 
         AuthnRequest sampleReq = SAMLUtility.createSamlAuthNRequest(serverAddress);
         String authNRequest = SAMLUtility.prepareAuthnRequestForSending(sampleReq);
