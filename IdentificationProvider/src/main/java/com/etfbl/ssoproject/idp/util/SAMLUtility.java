@@ -11,6 +11,7 @@ import org.opensaml.common.binding.SAMLMessageContext;
 import org.opensaml.saml2.core.*;
 import org.opensaml.saml2.core.impl.*;
 import org.opensaml.saml2.metadata.Endpoint;
+import org.opensaml.xacml.ctx.impl.AttributeValueTypeImplBuilder;
 import org.opensaml.xml.Configuration;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.XMLObjectBuilderFactory;
@@ -19,6 +20,9 @@ import org.opensaml.xml.io.MarshallerFactory;
 import org.opensaml.xml.io.Unmarshaller;
 import org.opensaml.xml.io.UnmarshallerFactory;
 import org.opensaml.xml.parse.BasicParserPool;
+import org.opensaml.xml.schema.XSAny;
+import org.opensaml.xml.schema.impl.XSAnyBuilder;
+import org.opensaml.xml.schema.impl.XSStringBuilder;
 import org.opensaml.xml.util.Base64;
 import org.opensaml.xml.util.XMLHelper;
 import org.springframework.stereotype.Service;
@@ -31,6 +35,7 @@ import javax.xml.namespace.QName;
 import java.io.*;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.util.List;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.Inflater;
@@ -132,9 +137,12 @@ public class SAMLUtility {
         return authnRequest;
     }
 
-    public static Response createSamlResponse(String requestIssuerUrl, String userEmailAddress,String statusCodeUri) {
+    public static Response createSamlResponse(String requestIssuerUrl, String userEmailAddress,String statusCodeUri, List<String> roles) {
+        XMLObjectBuilderFactory builderFactory = null;
+
         try {
             DefaultBootstrap.bootstrap();
+            builderFactory = Configuration.getBuilderFactory();
         } catch (Exception e ){
             e.printStackTrace();
         }
@@ -221,6 +229,23 @@ public class SAMLUtility {
         Audience audience = audienceBuilder.buildObject();
         audience.setAudienceURI(requestIssuerUrl);
 
+        //attribute statement
+        AttributeStatementBuilder attributeStatementBuilder = new AttributeStatementBuilder();
+        AttributeStatement attributeStatement = attributeStatementBuilder.buildObject();
+
+        AttributeBuilder attributeBuilder = new AttributeBuilder();
+        Attribute roleAttribute = attributeBuilder.buildObject();
+        roleAttribute.setName("role");
+
+        for (String role : roles) {
+            XSAnyBuilder sb2 = (XSAnyBuilder) builderFactory.getBuilder(XSAny.TYPE_NAME);
+            XSAny roleValue = sb2.buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSAny.TYPE_NAME);
+            roleValue.setTextContent(role);
+            roleAttribute.getAttributeValues().add(roleValue);
+        }
+
+        attributeStatement.getAttributes().add(roleAttribute);
+
         audienceRestriction.getAudiences().add(audience);
 
         conditions.getAudienceRestrictions().add(audienceRestriction);
@@ -233,6 +258,8 @@ public class SAMLUtility {
         assertion.setConditions(conditions);
 
         assertion.setSubject(subject);
+
+        assertion.getAttributeStatements().add(attributeStatement);
 
         response.getAssertions().add(assertion);
 
