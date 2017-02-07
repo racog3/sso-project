@@ -5,6 +5,7 @@ import com.etfbl.ssoproject.idp.model.TargetAuthorityDao;
 import com.etfbl.ssoproject.idp.model.TargetHost;
 import com.etfbl.ssoproject.idp.model.TargetHostDao;
 import com.etfbl.ssoproject.idp.util.SAMLUtility;
+import org.apache.catalina.servlet4preview.http.HttpServletRequest;
 import org.opensaml.saml2.core.AuthnRequest;
 import org.opensaml.saml2.core.Response;
 import org.opensaml.saml2.core.StatusCode;
@@ -26,6 +27,8 @@ import java.util.List;
 @Controller
 public class CredentialController {
 
+    public static final String AUTHNREQUEST_PROCESSING_PATH = "/Redirect";
+
     @Autowired
     private SAMLUtility samlUtility;
 
@@ -41,26 +44,29 @@ public class CredentialController {
         return "IT WORKS!!";
     }
 
-    @RequestMapping("/Redirect")
-    public String processAuthNRequest(Model model, @RequestParam("SAMLRequest") String authNRequest, @RequestParam("RelayState") String relayState) {
-        AuthnRequest authnRequest = samlUtility.readAuthNRequest(authNRequest);
-        String issuerUrl = authnRequest.getIssuer().getValue();
+    @RequestMapping(AUTHNREQUEST_PROCESSING_PATH)
+    public String processAuthNRequest(Model model, @RequestParam("SAMLRequest") String authNRequestRaw, @RequestParam("RelayState") String relayState, HttpServletRequest request) {
+        AuthnRequest authnRequest = samlUtility.readAuthNRequest(authNRequestRaw);
+        String requestIssuerURL = authnRequest.getIssuer().getValue();
+        String issuerURL = SAMLUtility.getFullServerAddress(request) + AUTHNREQUEST_PROCESSING_PATH;
 
         User user = (User)SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String username = user.getUsername().toString();
 
         // extract to method or service class
-        TargetHost targetHost = targetHostDao.findByUrl(issuerUrl);
+        TargetHost targetHost = targetHostDao.findByUrl(requestIssuerURL);
         List<TargetAuthority> targetAuthorities = targetAuthorityDao.findByUsernameAndTargetHost(username, targetHost);
         List<String> roles = new ArrayList<>();
         for (TargetAuthority targetAuthority : targetAuthorities) {
             roles.add(targetAuthority.getRole());
         }
 
-        Response samlResponse = SAMLUtility.createSamlResponse(issuerUrl, username , StatusCode.SUCCESS_URI, roles);
+        Response samlResponse = SAMLUtility.createSamlResponse(authnRequest.getID(), issuerURL,
+                authnRequest.getAssertionConsumerServiceURL(),
+                requestIssuerURL, username, roles, StatusCode.SUCCESS_URI);
         String samlResponseString = SAMLUtility.prepareXmlObjectForSending(samlResponse);
 
-        model.addAttribute("issuerUrl", issuerUrl);
+        model.addAttribute("issuerUrl", requestIssuerURL);
         model.addAttribute("SAMLResponse", samlResponseString);
         model.addAttribute("RelayState", relayState);
         return "redirect";

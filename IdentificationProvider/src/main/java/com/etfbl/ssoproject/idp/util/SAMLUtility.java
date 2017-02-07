@@ -1,5 +1,6 @@
 package com.etfbl.ssoproject.idp.util;
 
+import org.apache.catalina.servlet4preview.http.HttpServletRequest;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.opensaml.DefaultBootstrap;
@@ -36,6 +37,7 @@ import java.io.*;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.List;
+import java.util.UUID;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.Inflater;
@@ -54,7 +56,7 @@ public class SAMLUtility {
         try {
             DefaultBootstrap.bootstrap();
 
-            // not needed if received throught GET request as parameter
+            // not needed if received through GET request as parameter
             // String decoded = URLDecoder.decode(request,"UTF-8");
 
             byte[] decodedSamlAsBytes = Base64.decode(request);
@@ -88,7 +90,7 @@ public class SAMLUtility {
         return null;
     }
 
-    public static Response createSamlResponse(String requestIssuerUrl, String userEmailAddress,String statusCodeUri, List<String> roles) {
+    public static Response createSamlResponse(String issuerURL, String inResponseTo, String destinationURL, String requestIssuerUrl, String userEmailAddress, List<String> roles, String statusCodeURI) {
 
         try {
             XMLObjectBuilderFactory builderFactory = Configuration.getBuilderFactory();
@@ -97,34 +99,43 @@ public class SAMLUtility {
 
             DateTime issueDate = DateTime.now();
             DateTime notOnOrAfterDate = issueDate.plusMinutes(5);
-            String issuerUrl = "localhost:8081";
+
+            // Generate random UUID and append it to 'id'
+            String responseID = "id" + UUID.randomUUID().toString();
 
             //Response
             ResponseBuilder responseBuilder = new ResponseBuilder();
             Response response = responseBuilder.buildObject();
 
-            response.setID("identifier_2");
+            response.setID(responseID);
             response.setVersion(SAMLVersion.VERSION_20);
-            response.setInResponseTo("identifier_1");
+            response.setInResponseTo(inResponseTo);
             response.setIssueInstant(issueDate.plusSeconds(5));
-            response.setDestination(requestIssuerUrl + "/saml");
-
-            //Status ??
-            StatusBuilder statusBuilder = new StatusBuilder();
-            Status status = statusBuilder.buildObject();
-            StatusCodeBuilder statusCodeBuilder = new StatusCodeBuilder();
-            StatusCode statusCode = statusCodeBuilder.buildObject();
-            statusCode.setValue(statusCodeUri);
-            status.setStatusCode(statusCode);
+            response.setDestination(destinationURL);
 
                 //Issuer
-                response.setIssuer(createIssuer(issuerUrl));
+                Issuer issuer = createIssuer(issuerURL);
+
+            response.setIssuer(issuer);
+
+                //Status
+                Status status = createStatus();
+
+                    //StatusCode
+                    StatusCode statusCode = createStatusCode(statusCodeURI);
+
+                status.setStatusCode(statusCode);
+
+            response.setStatus(status);
 
                 //Assertion
-                Assertion assertion = createAssertion("identifier_3", SAMLVersion.VERSION_20, issueDate.plusSeconds(5));
+
+                String assertionID = "id" + UUID.randomUUID().toString();
+
+                Assertion assertion = createAssertion(assertionID, SAMLVersion.VERSION_20, issueDate.plusSeconds(5));
 
                     //Issuer
-                    Issuer issuer1 = createIssuer(issuerUrl);
+                    Issuer issuer1 = createIssuer(issuerURL);
 
                 assertion.setIssuer(issuer1);
 
@@ -139,7 +150,7 @@ public class SAMLUtility {
                             SubjectConfirmation subjectConfirmation = createSubjectConfirmation(SUBJECT_CONFIMRATION_METHOD_BEARER);
 
                                 //SubjectConfirmationData
-                                SubjectConfirmationData subjectConfirmationData = createSubjectConfirmationData("identifier_1", requestIssuerUrl+"/saml", notOnOrAfterDate);
+                                SubjectConfirmationData subjectConfirmationData = createSubjectConfirmationData(inResponseTo, destinationURL, notOnOrAfterDate);
                                 subjectConfirmation.setSubjectConfirmationData(subjectConfirmationData);
 
                             subject.getSubjectConfirmations().add(subjectConfirmation);
@@ -257,7 +268,24 @@ public class SAMLUtility {
         }
     }
 
-    // Issuer
+    //Status
+    public static Status createStatus() {
+        StatusBuilder statusBuilder = new StatusBuilder();
+        Status status = statusBuilder.buildObject();
+
+        return status;
+    }
+
+    //StatusCode
+    public static StatusCode createStatusCode(String statusCodeURI) {
+        StatusCodeBuilder statusCodeBuilder = new StatusCodeBuilder();
+        StatusCode statusCode = statusCodeBuilder.buildObject();
+        statusCode.setValue(statusCodeURI);
+
+        return statusCode;
+    }
+
+    //Issuer
     public static Issuer createIssuer(String issuerUrl) {
         IssuerBuilder issuerBuilder = new IssuerBuilder();
         Issuer issuer = issuerBuilder.buildObject();
@@ -375,5 +403,11 @@ public class SAMLUtility {
         nameID.setValue(value);
 
         return nameID;
+    }
+
+    public static String getFullServerAddress(HttpServletRequest request) {
+        String serverAddress = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
+
+        return serverAddress;
     }
 }
