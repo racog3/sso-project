@@ -30,13 +30,17 @@ import java.util.List;
 @Controller
 public class LoginController {
 
+    public static final String ASSERTION_CONSUMER_PATH = "/saml";
+
     @RequestMapping(value = "/login", method = RequestMethod.GET)
     public String login(HttpServletRequest request, HttpServletResponse response) {
 
         // TODO could be extracted to the method in the SAMLUtility class
-        String serverAddress = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
+        String serverAddress = SAMLUtility.getFullServerAddress(request);
 
-        AuthnRequest sampleReq = SAMLUtility.createSamlAuthNRequest(serverAddress);
+        AuthnRequest sampleReq = SAMLUtility.createSamlAuthNRequest(serverAddress + request.getServletPath(),
+                serverAddress + ASSERTION_CONSUMER_PATH,
+                SAMLUtility.IDP_ADDRESS + SAMLUtility.IDP_AUTHNREQUEST_PROCESSING_PATH);
         String authNRequest = SAMLUtility.prepareAuthnRequestForSending(sampleReq);
 
         // Get requested URL
@@ -49,7 +53,7 @@ public class LoginController {
         return "redirect:" + redirectUrl;
     }
 
-    @RequestMapping(value = "/saml", method = RequestMethod.POST)
+    @RequestMapping(value = ASSERTION_CONSUMER_PATH, method = RequestMethod.POST)
     public String loginReturn(@RequestParam("SAMLResponse")String samlResponseString, @RequestParam("RelayState") String relayState) {
 
         Response samlResponse = SAMLUtility.convertToSamlResponse(samlResponseString);

@@ -1,16 +1,12 @@
 package com.etfbl.ssoproject.sp.util;
 
+import org.apache.catalina.servlet4preview.http.HttpServletRequest;
 import org.apache.commons.collections.map.HashedMap;
 import org.joda.time.DateTime;
 import org.opensaml.DefaultBootstrap;
 import org.opensaml.common.SAMLVersion;
-import org.opensaml.saml2.core.AuthnRequest;
-import org.opensaml.saml2.core.Issuer;
-import org.opensaml.saml2.core.NameIDPolicy;
-import org.opensaml.saml2.core.Response;
-import org.opensaml.saml2.core.impl.AuthnRequestBuilder;
-import org.opensaml.saml2.core.impl.IssuerBuilder;
-import org.opensaml.saml2.core.impl.NameIDPolicyBuilder;
+import org.opensaml.saml2.core.*;
+import org.opensaml.saml2.core.impl.*;
 import org.opensaml.xml.Configuration;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.XMLObjectBuilderFactory;
@@ -42,7 +38,12 @@ import java.util.zip.InflaterInputStream;
 public class SAMLUtility {
 
     public static final String NAME_ID_POLICY_FORMAT_EMAIL_ADDRESS = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress";
+    public static final String BINDINGS_HTTP_POST = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST";
+    public static final String AUTHN_CONTEXT_PASSWORD_PROTECTED_TRANSPORT = "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport";
+
     public static final String IDP_ADDRESS = "http://localhost:8080/sso";
+    public static final String IDP_AUTHNREQUEST_PROCESSING_PATH = "/Redirect";
+
     private static Map<String,String> relayStates = new HashedMap();
     private static Map<String,AuthnRequest> authnRequestMap = new HashedMap();
 
@@ -92,7 +93,7 @@ public class SAMLUtility {
     - AssertionConsumerServiceIndex
     - AttributeConsumingServiceIndex
      */
-    public static AuthnRequest createSamlAuthNRequest(String issuerUrl) {
+    public static AuthnRequest createSamlAuthNRequest(String issuerURL, String assertionConsumerURL, String destinationURL) {
 
         try {
             DefaultBootstrap.bootstrap();
@@ -113,13 +114,22 @@ public class SAMLUtility {
         // SAML Version - REQ
         authnRequest.setVersion(SAMLVersion.VERSION_20);
 
+        // ProtocolBinding
+        authnRequest.setProtocolBinding(BINDINGS_HTTP_POST);
+
+        // AssertionConsumerServiceURL - URL on SP which will consume Assertion from Response
+        authnRequest.setAssertionConsumerServiceURL(assertionConsumerURL);
+
+        // Destination
+        authnRequest.setDestination(destinationURL);
+
         //The time instant of issue in UTC - REQ
         authnRequest.setIssueInstant(DateTime.now());
 
-        // Build issuer
+        // Build Issuer
         IssuerBuilder issuerBuilder = new IssuerBuilder();
         Issuer issuer = issuerBuilder.buildObject();
-        issuer.setValue(issuerUrl);
+        issuer.setValue(issuerURL);
 
         authnRequest.setIssuer(issuer);
 
@@ -131,7 +141,21 @@ public class SAMLUtility {
 
         authnRequest.setNameIDPolicy(nameIDPolicy);
 
-        // save authnrequest to the map so it can be used on response validation
+        // RequestedAuthnContext
+        RequestedAuthnContextBuilder requestedAuthnContextBuilder = new RequestedAuthnContextBuilder();
+        RequestedAuthnContext requestedAuthnContext = requestedAuthnContextBuilder.buildObject();
+        requestedAuthnContext.setComparison(AuthnContextComparisonTypeEnumeration.EXACT);
+
+        // AuthnContextClassRef
+        AuthnContextClassRefBuilder authnContextClassRefBuilder = new AuthnContextClassRefBuilder();
+        AuthnContextClassRef authnContextClassRef = authnContextClassRefBuilder.buildObject();
+        authnContextClassRef.setAuthnContextClassRef(AUTHN_CONTEXT_PASSWORD_PROTECTED_TRANSPORT);
+
+        requestedAuthnContext.getAuthnContextClassRefs().add(authnContextClassRef);
+
+        authnRequest.setRequestedAuthnContext(requestedAuthnContext);
+
+        // save 'authnrequest' to the map so it can be used on response validation
         authnRequestMap.put(requestID, authnRequest);
 
         return authnRequest;
@@ -217,5 +241,11 @@ public class SAMLUtility {
         String targetUrl = relayStates.get(key);
         relayStates.remove(key);
         return targetUrl;
+    }
+
+    public static String getFullServerAddress(HttpServletRequest request) {
+        String serverAddress = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
+
+        return serverAddress;
     }
 }
