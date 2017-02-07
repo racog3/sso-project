@@ -66,7 +66,7 @@ public class CredentialController {
                 requestIssuerURL, username, roles, StatusCode.SUCCESS_URI);
         String samlResponseString = SAMLUtility.prepareXmlObjectForSending(samlResponse);
 
-        model.addAttribute("issuerUrl", requestIssuerURL);
+        model.addAttribute("assertionConsumerServiceURL", authnRequest.getAssertionConsumerServiceURL());
         model.addAttribute("SAMLResponse", samlResponseString);
         model.addAttribute("RelayState", relayState);
         return "redirect";

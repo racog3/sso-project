@@ -4,11 +4,11 @@
 <head>
     <title>SSO Redirect </title>
 </head>
-<body onload="setTimeout(function() { document.redirectionForm.submit() }, 3000)">
+<body onload="setTimeout(function() { document.redirectionForm.submit() }, 30000)">
 <div>
 You have been successfully logged in and you'll be automatically redirected to the requested resource after 3 seconds.
 </div>
-<form id="redirectionForm" name="redirectionForm" th:action="${issuerUrl + '/saml'}" method="post">
+<form id="redirectionForm" name="redirectionForm" th:action="${assertionConsumerServiceURL}" method="post">
     <input type="hidden" name="SAMLResponse" th:value="${SAMLResponse}"/>
     <input type="hidden" name="RelayState" th:value="${RelayState}"/>
     <div><input type="submit" value="Submit"/></div>

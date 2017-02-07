@@ -65,18 +65,14 @@ public class LoginController {
 
         List<String> roles = new ArrayList<>();
         // Extract authorities from attribute statement
+        // TODO add this to SAML utility or Library
         for (Assertion assertion : samlResponse.getAssertions()) {
-            Assertion assertion1 = assertion;
-            if (assertion.getID().equals("identifier_3")) { // ? it should be 3 not 2
-                // TODO fix this to get it by ID or something
-                for (Attribute attribute : assertion.getAttributeStatements().get(0).getAttributes()) {
-                    if (attribute.getName().equals("role")) {
-                        for (XMLObject attributeValue : attribute.getAttributeValues()) {
-                            roles.add(((XSAny) attributeValue).getTextContent());
-                        }
+            for (Attribute attribute : assertion.getAttributeStatements().get(0).getAttributes()) {
+                if (attribute.getName().equals("role")) {
+                    for (XMLObject attributeValue : attribute.getAttributeValues()) {
+                        roles.add(((XSAny) attributeValue).getTextContent());
                     }
                 }
-
             }
         }
 
