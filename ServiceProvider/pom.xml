@@ -51,7 +51,7 @@
 		<dependency>
 			<groupId>com.etfbl.ssoproject.idp</groupId>
 			<artifactId>IdentificationProvider</artifactId>
-			<version>0.0.5-SNAPSHOT</version>
+			<version>0.0.7-SNAPSHOT</version>
 			<classifier>client</classifier>
 			<exclusions>
 				<exclusion>

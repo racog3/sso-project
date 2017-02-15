@@ -1,7 +1,5 @@
 package com.etfbl.ssoproject.idp.client;
 
-import org.apache.catalina.servlet4preview.http.HttpServletRequest;
-import org.apache.commons.collections.map.HashedMap;
 import org.joda.time.DateTime;
 import org.opensaml.DefaultBootstrap;
 import org.opensaml.common.SAMLVersion;
@@ -9,40 +7,29 @@ import org.opensaml.saml2.core.*;
 import org.opensaml.saml2.core.impl.*;
 import org.opensaml.xml.Configuration;
 import org.opensaml.xml.XMLObject;
-import org.opensaml.xml.XMLObjectBuilderFactory;
-import org.opensaml.xml.io.Marshaller;
-import org.opensaml.xml.io.MarshallerFactory;
 import org.opensaml.xml.io.Unmarshaller;
 import org.opensaml.xml.io.UnmarshallerFactory;
 import org.opensaml.xml.parse.BasicParserPool;
+import org.opensaml.xml.schema.XSAny;
 import org.opensaml.xml.util.Base64;
-import org.opensaml.xml.util.XMLHelper;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
-import java.util.zip.Deflater;
-import java.util.zip.DeflaterOutputStream;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 
-public class SSORequestBuilder {
+public class SAMLUtility {
     public static final String NAME_ID_POLICY_FORMAT_EMAIL_ADDRESS = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress";
     public static final String BINDINGS_HTTP_POST = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST";
     public static final String AUTHN_CONTEXT_PASSWORD_PROTECTED_TRANSPORT = "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport";
-
-    private static Map<String,String> relayStates = new HashedMap();
-    private static Map<String,AuthnRequest> authnRequestMap = new HashedMap();
-
-    private XMLObjectBuilderFactory builderFactory;
-
-    public SSORequestBuilder(XMLObjectBuilderFactory builderFactory) {
-        this.builderFactory = builderFactory;
-    }
 
     public static Response convertToSamlResponse(String response){
         try {
@@ -80,14 +67,6 @@ public class SSORequestBuilder {
         return null;
     }
 
-    /*
-    Basic elements of AuthNRequest
-    - ID
-    - Version
-    - IssueInstant
-    - AssertionConsumerServiceIndex
-    - AttributeConsumingServiceIndex
-     */
     public static AuthnRequest createSamlAuthNRequest(String issuerURL, String assertionConsumerURL, String destinationURL) {
 
         try {
@@ -150,43 +129,26 @@ public class SSORequestBuilder {
 
         authnRequest.setRequestedAuthnContext(requestedAuthnContext);
 
-        // save 'authnrequest' to the map so it can be used on response validation
-        authnRequestMap.put(requestID, authnRequest);
-
         return authnRequest;
     }
 
-    public static String prepareAuthnRequestForSending(AuthnRequest authnRequest) {
-        MarshallerFactory marshallerFactory = Configuration.getMarshallerFactory();
-        Marshaller marshaller = marshallerFactory.getMarshaller(authnRequest);
-
-        try {
-            Element authDom = marshaller.marshall(authnRequest);
-
-            StringWriter stringWriter = new StringWriter();
-            XMLHelper.writeNode(authDom, stringWriter);
-
-            // Raw AuthNRequest String
-            String authNrequestMessage = stringWriter.toString();
-
-            // Deflate XML
-            Deflater deflater = new Deflater(Deflater.DEFLATED, true);
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            DeflaterOutputStream deflaterOutputStream = new DeflaterOutputStream(outputStream, deflater);
-
-            deflaterOutputStream.write(authNrequestMessage.getBytes("UTF-8"));
-            deflaterOutputStream.close();
-
-            // Base64 encode deflated XML
-            String encodedAuthNRequest = Base64.encodeBytes(outputStream.toByteArray(), Base64.DONT_BREAK_LINES);
-            encodedAuthNRequest = URLEncoder.encode(encodedAuthNRequest, "UTF-8").trim();
-
-            return encodedAuthNRequest;
-        } catch (Exception e) {
-            e.printStackTrace();
+    public static List<String> getAssertionAttributeValues(String attributeName, Response samlResponse) {
+        List<String> values = new ArrayList<>();
+        for (Assertion assertion : samlResponse.getAssertions()) {
+            for (Attribute attribute : assertion.getAttributeStatements().get(0).getAttributes()) {
+                if (attribute.getName().equals(attributeName)) {
+                    for (XMLObject attributeValue : attribute.getAttributeValues()) {
+                        values.add(((XSAny) attributeValue).getTextContent());
+                    }
+                }
+            }
         }
 
-        return null;
+        return values;
+    }
+
+    public static String getAssertionSubject(Response samlResponse) {
+        return samlResponse.getAssertions().get(0).getSubject().getNameID().getValue();
     }
 
     private static byte[] inflate(byte[] bytes, boolean nowrap) throws Exception {
@@ -223,24 +185,5 @@ public class SSORequestBuilder {
              /*ignore*/
             }
         }
-    }
-
-    public static String saveRelayState(String targetUrl) {
-        UUID uuid = UUID.randomUUID();
-        String key = uuid.toString();
-        relayStates.put(key, targetUrl);
-        return key;
-    }
-
-    public static String getRelayStateByKey(String key) {
-        String targetUrl = relayStates.get(key);
-        relayStates.remove(key);
-        return targetUrl;
-    }
-
-    public static String getFullServerAddress(HttpServletRequest request) {
-        String serverAddress = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
-
-        return serverAddress;
     }
 }
