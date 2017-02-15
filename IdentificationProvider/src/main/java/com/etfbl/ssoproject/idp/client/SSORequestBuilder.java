@@ -1,4 +1,4 @@
-package com.etfbl.ssoproject.sp.util;
+package com.etfbl.ssoproject.idp.client;
 
 import org.apache.catalina.servlet4preview.http.HttpServletRequest;
 import org.apache.commons.collections.map.HashedMap;
@@ -17,7 +17,6 @@ import org.opensaml.xml.io.UnmarshallerFactory;
 import org.opensaml.xml.parse.BasicParserPool;
 import org.opensaml.xml.util.Base64;
 import org.opensaml.xml.util.XMLHelper;
-import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -31,23 +30,19 @@ import java.util.zip.DeflaterOutputStream;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 
-/**
- * Created by Rajo on 19.4.2016..
- */
-@Service
-public class SAMLUtility {
-
+public class SSORequestBuilder {
     public static final String NAME_ID_POLICY_FORMAT_EMAIL_ADDRESS = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress";
     public static final String BINDINGS_HTTP_POST = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST";
     public static final String AUTHN_CONTEXT_PASSWORD_PROTECTED_TRANSPORT = "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport";
 
-    public static final String IDP_ADDRESS = "http://localhost:8080/sso";
-    public static final String IDP_AUTHNREQUEST_PROCESSING_PATH = "/Redirect";
-
     private static Map<String,String> relayStates = new HashedMap();
     private static Map<String,AuthnRequest> authnRequestMap = new HashedMap();
 
-    private XMLObjectBuilderFactory builderFactory = Configuration.getBuilderFactory();
+    private XMLObjectBuilderFactory builderFactory;
+
+    public SSORequestBuilder(XMLObjectBuilderFactory builderFactory) {
+        this.builderFactory = builderFactory;
+    }
 
     public static Response convertToSamlResponse(String response){
         try {

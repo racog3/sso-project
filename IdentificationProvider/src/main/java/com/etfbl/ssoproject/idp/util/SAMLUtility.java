@@ -198,76 +198,6 @@ public class SAMLUtility {
         return null;
     }
 
-    public static String prepareXmlObjectForSending(XMLObject xmlObject) {
-        MarshallerFactory marshallerFactory = Configuration.getMarshallerFactory();
-
-        Marshaller marshaller = marshallerFactory.getMarshaller(xmlObject);
-
-        try {
-            Element authDom = marshaller.marshall(xmlObject);
-
-            StringWriter stringWriter = new StringWriter();
-            XMLHelper.writeNode(authDom, stringWriter);
-
-            // Raw AuthNRequest String
-            String authNrequestMessage = stringWriter.toString();
-
-            // Deflate XML
-            Deflater deflater = new Deflater(Deflater.DEFLATED, true);
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            DeflaterOutputStream deflaterOutputStream = new DeflaterOutputStream(outputStream, deflater);
-
-            deflaterOutputStream.write(authNrequestMessage.getBytes("UTF-8"));
-            deflaterOutputStream.close();
-
-            // Base64 encode deflated XML
-            String encodedAuthNRequest = Base64.encodeBytes(outputStream.toByteArray(), Base64.DONT_BREAK_LINES);
-            encodedAuthNRequest = URLEncoder.encode(encodedAuthNRequest, "UTF-8").trim();
-
-            return encodedAuthNRequest;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return null;
-    }
-
-    private static byte[] inflate(byte[] bytes, boolean nowrap) throws Exception {
-
-        Inflater decompressor = null;
-        InflaterInputStream decompressorStream = null;
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            decompressor = new Inflater(nowrap);
-            decompressorStream = new InflaterInputStream(new ByteArrayInputStream(bytes),
-                    decompressor);
-            byte[] buf = new byte[1024];
-            int count;
-            while ((count = decompressorStream.read(buf)) != -1) {
-                out.write(buf, 0, count);
-            }
-            return out.toByteArray();
-        } finally {
-            if (decompressor != null) {
-                decompressor.end();
-            }
-            try {
-                if (decompressorStream != null) {
-                    decompressorStream.close();
-                }
-            } catch (IOException ioe) {
-             /*ignore*/
-            }
-            try {
-                if (out != null) {
-                    out.close();
-                }
-            } catch (IOException ioe) {
-             /*ignore*/
-            }
-        }
-    }
-
     //Status
     public static Status createStatus() {
         StatusBuilder statusBuilder = new StatusBuilder();
@@ -409,5 +339,75 @@ public class SAMLUtility {
         String serverAddress = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
 
         return serverAddress;
+    }
+
+    public static String prepareXmlObjectForSending(XMLObject xmlObject) {
+        MarshallerFactory marshallerFactory = Configuration.getMarshallerFactory();
+
+        Marshaller marshaller = marshallerFactory.getMarshaller(xmlObject);
+
+        try {
+            Element authDom = marshaller.marshall(xmlObject);
+
+            StringWriter stringWriter = new StringWriter();
+            XMLHelper.writeNode(authDom, stringWriter);
+
+            // Raw AuthNRequest String
+            String authNrequestMessage = stringWriter.toString();
+
+            // Deflate XML
+            Deflater deflater = new Deflater(Deflater.DEFLATED, true);
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            DeflaterOutputStream deflaterOutputStream = new DeflaterOutputStream(outputStream, deflater);
+
+            deflaterOutputStream.write(authNrequestMessage.getBytes("UTF-8"));
+            deflaterOutputStream.close();
+
+            // Base64 encode deflated XML
+            String encodedAuthNRequest = Base64.encodeBytes(outputStream.toByteArray(), Base64.DONT_BREAK_LINES);
+            encodedAuthNRequest = URLEncoder.encode(encodedAuthNRequest, "UTF-8").trim();
+
+            return encodedAuthNRequest;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    private static byte[] inflate(byte[] bytes, boolean nowrap) throws Exception {
+
+        Inflater decompressor = null;
+        InflaterInputStream decompressorStream = null;
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
+            decompressor = new Inflater(nowrap);
+            decompressorStream = new InflaterInputStream(new ByteArrayInputStream(bytes),
+                    decompressor);
+            byte[] buf = new byte[1024];
+            int count;
+            while ((count = decompressorStream.read(buf)) != -1) {
+                out.write(buf, 0, count);
+            }
+            return out.toByteArray();
+        } finally {
+            if (decompressor != null) {
+                decompressor.end();
+            }
+            try {
+                if (decompressorStream != null) {
+                    decompressorStream.close();
+                }
+            } catch (IOException ioe) {
+             /*ignore*/
+            }
+            try {
+                if (out != null) {
+                    out.close();
+                }
+            } catch (IOException ioe) {
+             /*ignore*/
+            }
+        }
     }
 }

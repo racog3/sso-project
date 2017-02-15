@@ -1,11 +1,12 @@
 package com.etfbl.ssoproject.sp.controller;
 
-import com.etfbl.ssoproject.sp.util.SAMLUtility;
+import com.etfbl.ssoproject.sp.service.SSOService;
 import org.apache.catalina.servlet4preview.http.HttpServletRequest;
 import org.opensaml.saml2.core.*;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.schema.XSAny;
-import org.opensaml.xml.schema.XSString;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -30,33 +31,41 @@ import java.util.List;
 @Controller
 public class LoginController {
 
-    public static final String ASSERTION_CONSUMER_PATH = "/saml";
+    @Value("${sso.sp.path.assertionConsumer}")
+    public String ASSERTION_CONSUMER_PATH;
+    @Value("${sso.idp.address}")
+    public String IDP_ADDRESS;
+    @Value("${sso.idp.path.processing}")
+    public String IDP_AUTHNREQUEST_PROCESSING_PATH;
+
+    @Autowired
+    public SSOService ssoService;
 
     @RequestMapping(value = "/login", method = RequestMethod.GET)
     public String login(HttpServletRequest request, HttpServletResponse response) {
 
         // TODO could be extracted to the method in the SAMLUtility class
-        String serverAddress = SAMLUtility.getFullServerAddress(request);
+        String serverAddress = ssoService.getFullServerAddress(request);
 
-        AuthnRequest sampleReq = SAMLUtility.createSamlAuthNRequest(serverAddress + request.getServletPath(),
+        AuthnRequest sampleReq = ssoService.createSamlAuthNRequest(serverAddress + request.getServletPath(),
                 serverAddress + ASSERTION_CONSUMER_PATH,
-                SAMLUtility.IDP_ADDRESS + SAMLUtility.IDP_AUTHNREQUEST_PROCESSING_PATH);
-        String authNRequest = SAMLUtility.prepareAuthnRequestForSending(sampleReq);
+                IDP_ADDRESS + IDP_AUTHNREQUEST_PROCESSING_PATH);
+        String authNRequest = ssoService.prepareAuthnRequestForSending(sampleReq);
 
         // Get requested URL
         SavedRequest savedRequest =
                 new HttpSessionRequestCache().getRequest(request, response);
 
-        String relayState = SAMLUtility.saveRelayState(savedRequest.getRedirectUrl());
+        String relayState = ssoService.saveRelayState(savedRequest.getRedirectUrl());
 
-        String redirectUrl = SAMLUtility.IDP_ADDRESS + "/Redirect?SAMLRequest=" + authNRequest + "&RelayState=" + relayState;
+        String redirectUrl = IDP_ADDRESS + "/Redirect?SAMLRequest=" + authNRequest + "&RelayState=" + relayState;
         return "redirect:" + redirectUrl;
     }
 
-    @RequestMapping(value = ASSERTION_CONSUMER_PATH, method = RequestMethod.POST)
+    @RequestMapping(value = "${sso.sp.path.assertionConsumer}", method = RequestMethod.POST)
     public String loginReturn(@RequestParam("SAMLResponse")String samlResponseString, @RequestParam("RelayState") String relayState) {
 
-        Response samlResponse = SAMLUtility.convertToSamlResponse(samlResponseString);
+        Response samlResponse = ssoService.convertToSamlResponse(samlResponseString);
         System.out.println("RESPONSE TO: : " + samlResponse.getInResponseTo());
 
         String username = samlResponse.getAssertions().get(0).getSubject().getNameID().getValue();
@@ -82,7 +91,7 @@ public class LoginController {
         SecurityContextHolder.getContext().setAuthentication(auth);
 
         // Get target url
-        String targetUrl = SAMLUtility.getRelayStateByKey(relayState);
+        String targetUrl = ssoService.getRelayStateByKey(relayState);
 
         // Redirect the user to the requested resource
         return "redirect:" + targetUrl;
