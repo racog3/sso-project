@@ -9,7 +9,7 @@
 	<packaging>jar</packaging>
 
 	<name>ServiceProvider</name>
-	<description>Demo project for Spring Boot</description>
+	<description>Dummy SSO client app (Service Provider) for final thesis work of Rajo Gajic</description>
 
 	<parent>
 		<groupId>org.springframework.boot</groupId>
@@ -51,7 +51,7 @@
 		<dependency>
 			<groupId>com.etfbl.ssoproject.idp</groupId>
 			<artifactId>IdentificationProvider</artifactId>
-			<version>0.0.7-SNAPSHOT</version>
+			<version>0.0.8-SNAPSHOT</version>
 			<classifier>client</classifier>
 			<exclusions>
 				<exclusion>

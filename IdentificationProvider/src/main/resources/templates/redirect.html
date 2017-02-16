@@ -2,15 +2,15 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity3">
 <head>
-    <title>SSO Redirect </title>
+    <title>SSO Redirection </title>
 </head>
-<body onload="setTimeout(function() { document.redirectionForm.submit() }, 30000)">
+<body onload="setTimeout(function() { document.redirectionForm.submit() }, 50000)">
 <div>
-You have been successfully logged in and you'll be automatically redirected to the requested resource after 3 seconds.
+You have been successfully logged in and you'll be automatically redirected to the requested resource after 5 seconds.
 </div>
 <form id="redirectionForm" name="redirectionForm" th:action="${assertionConsumerServiceURL}" method="post">
-    <input type="hidden" name="SAMLResponse" th:value="${SAMLResponse}"/>
-    <input type="hidden" name="RelayState" th:value="${RelayState}"/>
+    <input type="hidden" th:name="${T(com.etfbl.ssoproject.idp.client.SSOUtility).RESPONSE_PARAM_NAME}" th:value="${SAMLResponse}"/>
+    <input type="hidden" th:name="${T(com.etfbl.ssoproject.idp.client.SSOUtility).RELAY_STATE_PARAM_NAME}" th:value="${RelayState}"/>
     <div><input type="submit" value="Submit"/></div>
 </form>
 </body>

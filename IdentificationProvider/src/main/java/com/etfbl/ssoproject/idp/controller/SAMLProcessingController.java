@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Controller
-public class CredentialController {
+public class SAMLProcessingController {
 
     @Autowired
     TargetAuthorityDao targetAuthorityDao;
@@ -31,7 +31,8 @@ public class CredentialController {
     TargetHostDao targetHostDao;
 
     @RequestMapping(SSOUtility.AUTHNREQUEST_PROCESSING_PATH)
-    public String processAuthNRequest(Model model, @RequestParam("SAMLRequest") String authNRequestRaw, @RequestParam("RelayState") String relayState, HttpServletRequest request) {
+    public String processAuthNRequest(Model model, @RequestParam(SSOUtility.REQUEST_PARAM_NAME) String authNRequestRaw,
+                                      @RequestParam(SSOUtility.RELAY_STATE_PARAM_NAME) String relayState, HttpServletRequest request) {
         AuthnRequest authnRequest = SAMLUtility.readAuthNRequest(authNRequestRaw);
         String requestIssuerURL = authnRequest.getIssuer().getValue();
         String issuerURL = SAMLUtility.getFullServerAddress(request) + SSOUtility.AUTHNREQUEST_PROCESSING_PATH;

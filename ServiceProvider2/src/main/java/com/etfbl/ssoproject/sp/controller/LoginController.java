@@ -4,7 +4,6 @@ import com.etfbl.ssoproject.idp.client.SAMLUtility;
 import com.etfbl.ssoproject.idp.client.SSOUtility;
 import org.apache.catalina.servlet4preview.http.HttpServletRequest;
 import org.opensaml.saml2.core.Response;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -27,19 +26,18 @@ public class LoginController {
     public String ASSERTION_CONSUMER_PATH;
     @Value("${sso.idp.address}")
     public String IDP_ADDRESS;
-    @Value("${sso.idp.path.processing}")
-    public String IDP_AUTHNREQUEST_PROCESSING_PATH;
 
     @RequestMapping(value = "/login", method = RequestMethod.GET)
     public String login(HttpServletRequest request, HttpServletResponse response) {
 
-        String redirectUrl = SSOUtility.generateRedirectionURL(request, response, ASSERTION_CONSUMER_PATH, IDP_ADDRESS, IDP_AUTHNREQUEST_PROCESSING_PATH);
+        String redirectUrl = SSOUtility.generateRedirectionURL(request, response, ASSERTION_CONSUMER_PATH, IDP_ADDRESS, SSOUtility.AUTHNREQUEST_PROCESSING_PATH);
 
         return "redirect:" + redirectUrl;
     }
 
     @RequestMapping(value = "${sso.sp.path.assertionConsumer}", method = RequestMethod.POST)
-    public String loginReturn(@RequestParam("SAMLResponse")String samlResponseString, @RequestParam("RelayState") String relayState) {
+    public String loginReturn(@RequestParam(SSOUtility.RESPONSE_PARAM_NAME)String samlResponseString,
+                              @RequestParam(SSOUtility.RELAY_STATE_PARAM_NAME) String relayState) {
 
         // Convert raw response to Response object
         // TODO Implement SAML response validation
