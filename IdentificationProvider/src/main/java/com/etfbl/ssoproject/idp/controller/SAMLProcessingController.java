@@ -33,14 +33,16 @@ public class SAMLProcessingController {
     @RequestMapping(SSOUtility.AUTHNREQUEST_PROCESSING_PATH)
     public String processAuthNRequest(Model model, @RequestParam(SSOUtility.REQUEST_PARAM_NAME) String authNRequestRaw,
                                       @RequestParam(SSOUtility.RELAY_STATE_PARAM_NAME) String relayState, HttpServletRequest request) {
+        // Convert raw SAML Authn request to object
         AuthnRequest authnRequest = SAMLUtility.readAuthNRequest(authNRequestRaw);
+
         String requestIssuerURL = authnRequest.getIssuer().getValue();
         String issuerURL = SAMLUtility.getFullServerAddress(request) + SSOUtility.AUTHNREQUEST_PROCESSING_PATH;
 
         User user = (User)SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String username = user.getUsername().toString();
 
-        // extract to method or service class
+        // Find roles of authenticated user for requested target host
         TargetHost targetHost = targetHostDao.findByUrl(requestIssuerURL);
         List<TargetAuthority> targetAuthorities = targetAuthorityDao.findByUsernameAndTargetHost(username, targetHost);
         List<String> roles = new ArrayList<>();
@@ -48,9 +50,11 @@ public class SAMLProcessingController {
             roles.add(targetAuthority.getRole());
         }
 
+        // Create SAML response including user roles
         Response samlResponse = SAMLUtility.createSamlResponse(authnRequest.getID(), issuerURL,
                 authnRequest.getAssertionConsumerServiceURL(),
                 requestIssuerURL, username, roles, StatusCode.SUCCESS_URI);
+        // Prepare SAML response for sending
         String samlResponseString = SAMLUtility.prepareXmlObjectForSending(samlResponse);
 
         model.addAttribute("assertionConsumerServiceURL", authnRequest.getAssertionConsumerServiceURL());

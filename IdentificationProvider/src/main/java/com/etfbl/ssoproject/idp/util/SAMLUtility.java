@@ -18,6 +18,7 @@ import org.opensaml.xml.schema.XSAny;
 import org.opensaml.xml.schema.impl.XSAnyBuilder;
 import org.opensaml.xml.util.Base64;
 import org.opensaml.xml.util.XMLHelper;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -33,6 +34,8 @@ import java.util.zip.InflaterInputStream;
 
 @Service
 public class SAMLUtility {
+
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(SAMLUtility.class);
 
     public static final String NAME_ID_POLICY_FORMAT_EMAIL_ADDRESS = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress";
     public static final String SUBJECT_CONFIMRATION_METHOD_BEARER = "urn:oasis:names:tc:SAML:2.0:cm:bearer";
@@ -61,6 +64,10 @@ public class SAMLUtility {
             Unmarshaller unmarshaller = unmarshallerFactory.getUnmarshaller(element);
 
             XMLObject requestXmlObject = unmarshaller.unmarshall(element);
+
+            logger.debug("Received SAML Authn Request:");
+            logger.debug(domElementToString(element));
+
             AuthnRequest authnRequest = (AuthnRequest) requestXmlObject;
 
             return authnRequest;
@@ -328,27 +335,27 @@ public class SAMLUtility {
         Marshaller marshaller = marshallerFactory.getMarshaller(xmlObject);
 
         try {
-            Element authDom = marshaller.marshall(xmlObject);
+            Element element = marshaller.marshall(xmlObject);
 
-            StringWriter stringWriter = new StringWriter();
-            XMLHelper.writeNode(authDom, stringWriter);
+            // Raw SAML message string
+            String samlMessage = domElementToString(element);
 
-            // Raw AuthNRequest String
-            String authNrequestMessage = stringWriter.toString();
+            logger.debug("Sending SAML Response:");
+            logger.debug(samlMessage);
 
             // Deflate XML
             Deflater deflater = new Deflater(Deflater.DEFLATED, true);
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             DeflaterOutputStream deflaterOutputStream = new DeflaterOutputStream(outputStream, deflater);
 
-            deflaterOutputStream.write(authNrequestMessage.getBytes("UTF-8"));
+            deflaterOutputStream.write(samlMessage.getBytes("UTF-8"));
             deflaterOutputStream.close();
 
             // Base64 encode deflated XML
-            String encodedAuthNRequest = Base64.encodeBytes(outputStream.toByteArray(), Base64.DONT_BREAK_LINES);
-            encodedAuthNRequest = URLEncoder.encode(encodedAuthNRequest, "UTF-8").trim();
+            String encodedSAMLMessage = Base64.encodeBytes(outputStream.toByteArray(), Base64.DONT_BREAK_LINES);
+            encodedSAMLMessage = URLEncoder.encode(encodedSAMLMessage, "UTF-8").trim();
 
-            return encodedAuthNRequest;
+            return encodedSAMLMessage;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -390,5 +397,11 @@ public class SAMLUtility {
              /*ignore*/
             }
         }
+    }
+
+    private static String domElementToString(Element element) {
+        StringWriter stringWriter = new StringWriter();
+        XMLHelper.writeNode(element, stringWriter);
+        return stringWriter.toString();
     }
 }
