@@ -1,18 +1,11 @@
 package com.etfbl.ssoproject.idp.util;
 
 import org.apache.catalina.servlet4preview.http.HttpServletRequest;
-import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.opensaml.DefaultBootstrap;
-import org.opensaml.common.SAMLObject;
-import org.opensaml.common.SAMLObjectBuilder;
 import org.opensaml.common.SAMLVersion;
-import org.opensaml.common.binding.BasicSAMLMessageContext;
-import org.opensaml.common.binding.SAMLMessageContext;
 import org.opensaml.saml2.core.*;
 import org.opensaml.saml2.core.impl.*;
-import org.opensaml.saml2.metadata.Endpoint;
-import org.opensaml.xacml.ctx.impl.AttributeValueTypeImplBuilder;
 import org.opensaml.xml.Configuration;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.XMLObjectBuilderFactory;
@@ -23,18 +16,13 @@ import org.opensaml.xml.io.UnmarshallerFactory;
 import org.opensaml.xml.parse.BasicParserPool;
 import org.opensaml.xml.schema.XSAny;
 import org.opensaml.xml.schema.impl.XSAnyBuilder;
-import org.opensaml.xml.schema.impl.XSStringBuilder;
 import org.opensaml.xml.util.Base64;
 import org.opensaml.xml.util.XMLHelper;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import javax.xml.namespace.QName;
 import java.io.*;
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.List;
 import java.util.UUID;
@@ -43,16 +31,13 @@ import java.util.zip.DeflaterOutputStream;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 
-/**
- * Created by Rajo on 19.4.2016..
- */
 @Service
 public class SAMLUtility {
 
     public static final String NAME_ID_POLICY_FORMAT_EMAIL_ADDRESS = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress";
     public static final String SUBJECT_CONFIMRATION_METHOD_BEARER = "urn:oasis:names:tc:SAML:2.0:cm:bearer";
 
-    public AuthnRequest readAuthNRequest(String request){
+    public static AuthnRequest readAuthNRequest(String request){
         try {
             DefaultBootstrap.bootstrap();
 
@@ -77,10 +62,6 @@ public class SAMLUtility {
 
             XMLObject requestXmlObject = unmarshaller.unmarshall(element);
             AuthnRequest authnRequest = (AuthnRequest) requestXmlObject;
-
-            System.out.println("Issuer : " + authnRequest.getIssuer().getValue());
-            System.out.println("ID : " + authnRequest.getID());
-            System.out.println("Name ID policy : " + authnRequest.getNameIDPolicy().getFormat());
 
             return authnRequest;
         } catch (Exception e) {

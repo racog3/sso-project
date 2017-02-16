@@ -56,9 +56,6 @@ public class SAMLUtility {
             XMLObject requestXmlObject = unmarshaller.unmarshall(element);
             Response samlResponse = (Response) requestXmlObject;
 
-            System.out.println("Issuer : " + samlResponse.getIssuer());
-            System.out.println("ID : " + samlResponse.getID());
-
             return samlResponse;
         } catch (Exception e) {
             e.printStackTrace();

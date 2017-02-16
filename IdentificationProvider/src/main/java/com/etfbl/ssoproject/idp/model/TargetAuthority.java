@@ -4,9 +4,6 @@ package com.etfbl.ssoproject.idp.model;
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 
-/**
- * Created by Rajo on 19.4.2016..
- */
 @Entity
 @Table(name = "target_authorities")
 public class TargetAuthority {

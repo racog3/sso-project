@@ -1,5 +1,6 @@
 package com.etfbl.ssoproject.idp.controller;
 
+import com.etfbl.ssoproject.idp.client.SSOUtility;
 import com.etfbl.ssoproject.idp.model.TargetAuthority;
 import com.etfbl.ssoproject.idp.model.TargetAuthorityDao;
 import com.etfbl.ssoproject.idp.model.TargetHost;
@@ -16,21 +17,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by Rajo on 19.4.2016..
- */
 @Controller
 public class CredentialController {
-
-    public static final String AUTHNREQUEST_PROCESSING_PATH = "/Redirect";
-
-    @Autowired
-    private SAMLUtility samlUtility;
 
     @Autowired
     TargetAuthorityDao targetAuthorityDao;
@@ -38,17 +30,11 @@ public class CredentialController {
     @Autowired
     TargetHostDao targetHostDao;
 
-    @RequestMapping("/accessTest")
-    @ResponseBody
-    public String test(){
-        return "IT WORKS!!";
-    }
-
-    @RequestMapping(AUTHNREQUEST_PROCESSING_PATH)
+    @RequestMapping(SSOUtility.AUTHNREQUEST_PROCESSING_PATH)
     public String processAuthNRequest(Model model, @RequestParam("SAMLRequest") String authNRequestRaw, @RequestParam("RelayState") String relayState, HttpServletRequest request) {
-        AuthnRequest authnRequest = samlUtility.readAuthNRequest(authNRequestRaw);
+        AuthnRequest authnRequest = SAMLUtility.readAuthNRequest(authNRequestRaw);
         String requestIssuerURL = authnRequest.getIssuer().getValue();
-        String issuerURL = SAMLUtility.getFullServerAddress(request) + AUTHNREQUEST_PROCESSING_PATH;
+        String issuerURL = SAMLUtility.getFullServerAddress(request) + SSOUtility.AUTHNREQUEST_PROCESSING_PATH;
 
         User user = (User)SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String username = user.getUsername().toString();

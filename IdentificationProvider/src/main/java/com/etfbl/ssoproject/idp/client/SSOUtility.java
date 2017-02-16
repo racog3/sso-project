@@ -24,6 +24,7 @@ import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
 public class SSOUtility {
+    public static final String AUTHNREQUEST_PROCESSING_PATH = "/Redirect";
     private static Map<String,String> relayStates = new HashedMap();
     private static Map<String,AuthnRequest> authnRequestMap = new HashedMap();
 
@@ -43,7 +44,7 @@ public class SSOUtility {
 
         String relayState = saveRelayState(savedRequest.getRedirectUrl());
 
-        String redirectUrl = IDPAddress + "/Redirect?SAMLRequest=" + authNRequest + "&RelayState=" + relayState;
+        String redirectUrl = IDPAddress + AUTHNREQUEST_PROCESSING_PATH + "?SAMLRequest=" + authNRequest + "&RelayState=" + relayState;
 
         return redirectUrl;
     }

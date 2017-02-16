@@ -5,9 +5,6 @@ import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
-/**
- * Created by Rajo on 19.4.2016..
- */
 @Entity
 @Table(name = "target_hosts")
 public class TargetHost {
