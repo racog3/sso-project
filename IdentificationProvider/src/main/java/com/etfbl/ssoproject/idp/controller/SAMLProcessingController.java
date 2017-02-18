@@ -51,7 +51,7 @@ public class SAMLProcessingController {
         }
 
         // Create SAML response including user roles
-        Response samlResponse = SAMLUtility.createSamlResponse(authnRequest.getID(), issuerURL,
+        Response samlResponse = SAMLUtility.createSamlResponse(issuerURL, authnRequest.getID(),
                 authnRequest.getAssertionConsumerServiceURL(),
                 requestIssuerURL, username, roles, StatusCode.SUCCESS_URI);
         // Prepare SAML response for sending

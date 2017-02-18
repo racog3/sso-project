@@ -28,7 +28,7 @@ import java.util.zip.InflaterInputStream;
 
 public class SAMLUtility {
     public static final String NAME_ID_POLICY_FORMAT_EMAIL_ADDRESS = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress";
-    public static final String BINDINGS_HTTP_POST = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST";
+    public static final String BINDINGS_HTTP_REDIRECT = "urn:oasis:names.tc:SAML:2.0:bindings:HTTP-Redirect";
     public static final String AUTHN_CONTEXT_PASSWORD_PROTECTED_TRANSPORT = "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport";
 
     public static Response convertToSamlResponse(String response){
@@ -86,7 +86,7 @@ public class SAMLUtility {
         authnRequest.setVersion(SAMLVersion.VERSION_20);
 
         // ProtocolBinding
-        authnRequest.setProtocolBinding(BINDINGS_HTTP_POST);
+        authnRequest.setProtocolBinding(BINDINGS_HTTP_REDIRECT);
 
         // AssertionConsumerServiceURL - URL on SP which will consume Assertion from Response
         authnRequest.setAssertionConsumerServiceURL(assertionConsumerURL);
