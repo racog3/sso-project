@@ -15,4 +15,9 @@ public class TestController {
     public String protectedResource() {
         return "protected";
     }
+
+    @RequestMapping("/protectedResource2")
+    public String protectedResource2() {
+        return "protected";
+    }
 }
