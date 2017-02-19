@@ -1,0 +1,56 @@
+S obzirom da su u pitanju Spring Boot aplikacije, sama konfiguracija i pokretanje su veoma jednostavni.
+Pošto IdP koristi bazu za autorizaciju korisnika i izvlacenje rola, neophodno je da na racunaru postoji SQL baza podataka. 
+U okviru IdP projekta se nalaze skripte za inicijalizovanje baze (schema.sql) i popunjavanje tabela sa testnim podacima (data.sql). 
+
+Unutar application.properties fajlova u okviru sve tri aplikacije, promjenom server.context i server.port parametara moguce je prilagoditi
+kontekst i port na kom ce server uslužiti aplikaciju. Za klijentske aplikacije je moguce podesiti putanju koja ce vršiti obradu SAML odgovora,
+a trenutno je postavljena na /saml.
+
+Napomena: Paziti da je u okviru application.properties fajlova koji se nalaze u klijentskim aplikacijama ispravno podešena adresa IdP-a tj SSO servera – sso.idp.address
+Takode, u slucaju promjene konteksta SP aplikacija, potrebno je prilagoditi vrijednosti SQL promijenjivih @host1Url i @host2Url unutar data.sql skripte u okviru IdP projekta,
+kako bi se mogle ispravno ucitati role za testne korisnike.
+
+Za pokretanje serverske i klijentskih aplikacija potrebno je izvršiti naredne korake:
+
+1.	Raspakovati sso-project.zip na zeljenu lokaciju na disku ili odraditi checkout projekta sa GitHub repozitorija - https://github.com/racog3/sso-project.git
+
+2.	Otvoriti direktorij pod nazivom IdentificationProvider i podesiti application.properties fajl tako da spring.datasource parametri imaju ispravne postavke
+	za povezivanje na bazu podataka. 
+
+3.	Izvršiti Maven komandu mvnw clean install. Ovim korakom ce se izvršiti i pakovanje neophodne klijentske biblioteke 'IdentificationProvider-x.x-client.jar'
+	te njeno instaliranje u lokalni maven repozitorij kako bi se mogla koristiti kao dependency u okviru klijentski aplikacija SP1 i SP2. 
+
+4.	Pokrenuti SSO server tj IdP aplikaciju:
+	java -jar target/IdentificationProvider-0.0.9-SNAPSHOT.jar
+
+5.	Otvoriti i direktorije pod nazivima 'ServiceProvider' i 'ServiceProvider2' i u okviru njih takodje izvršiti mvnw clean install komandu. 
+
+6.	Pokrenuti SSO klijente tj SP aplikacije:
+	java -jar target/ServiceProvider-0.0.1-SNAPSHOT.jar
+	java -jar target/ServiceProvider2-0.0.1-SNAPSHOT.jar
+
+
+Podrazumijevane adrese pri lokalnom pokretanju aplikacija:
+SP1 - http://localhost:8081/sp1 
+SP2 - http://localhost:8082/sp2
+IdP (SSO) – http://localhost:8080/sso/
+
+Predefinisani tesni korisnici u data.sql skripti:
+1.	Korisnik 1
+username: user1@etfbl.net
+password: 1234 
+Ima pristup zašticenim stranicama na obije klijentske aplikacije:
+http://localhost:8081/sp1/protectedResource
+http://localhost:8081/sp1/protectedResource2
+http://localhost:8082/sp2/protectedResource
+http://localhost:8082/sp2/protectedResource2
+
+2.	Korisnik 2
+username: user2@etfbl.net
+password: 1234 
+Ima pristup zašticenim stranicama na drugoj klijentskoj aplikaciji:
+http://localhost:8082/sp2/protectedResource
+http://localhost:8082/sp2/protectedResource2
+ali nema pristup žašticenim stranicama na prvoj klijentskoj aplikaciji:
+http://localhost:8081/sp1/protectedResource
+http://localhost:8081/sp1/protectedResource2
