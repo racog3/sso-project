@@ -3,7 +3,7 @@
 -- -----------------------------------------------------
 
 SET @user1 = 'user1@etfbl.net', @user2 = 'user2@etfbl.net', @pass1 = 1234, @pass2=1234;
-SET @host1Url = 'http://localhost:8081/sp1/login', @host2Url = 'http://localhost:8082/sp2/login';
+SET @host1Url = 'http://localhost:8081/sp1', @host2Url = 'http://localhost:8082/sp2';
 
 INSERT INTO `ssodb`.`users` (`username`, `password`, `enabled`) VALUES (@user1, @pass1, '1');
 INSERT INTO `ssodb`.`users` (`username`, `password`, `enabled`) VALUES (@user2, @pass2, '1');

@@ -41,41 +41,21 @@ public class SAMLUtility {
     public static final String SUBJECT_CONFIMRATION_METHOD_BEARER = "urn:oasis:names:tc:SAML:2.0:cm:bearer";
 
     public static AuthnRequest readAuthNRequest(String request){
-        try {
-            DefaultBootstrap.bootstrap();
+        AuthnRequest authnRequest = (AuthnRequest) convertToXMLObject(request);
 
-            // not needed if received through GET request as parameter
-            // String decoded = URLDecoder.decode(request,"UTF-8");
+        logger.debug("Received SAML Authn Request:");
+        logger.debug(domElementToString(authnRequest.getDOM()));
 
-            byte[] decodedSamlAsBytes = Base64.decode(request);
+        return authnRequest;
+    }
 
-            byte[] inflated = inflate(decodedSamlAsBytes, true);
+    public static LogoutRequest readLogoutRequest(String request){
+        LogoutRequest logoutRequest = (LogoutRequest) convertToXMLObject(request);
 
-            // Get parser pool manager
-            BasicParserPool ppMgr = new BasicParserPool();
-            ppMgr.setNamespaceAware(true);
+        logger.debug("Received SAML Logout Request:");
+        logger.debug(domElementToString(logoutRequest.getDOM()));
 
-            // Parse metadata file
-            InputStream in = new ByteArrayInputStream(inflated);
-            Document document = ppMgr.parse(in);
-            Element element = document.getDocumentElement();
-
-            UnmarshallerFactory unmarshallerFactory = Configuration.getUnmarshallerFactory();
-            Unmarshaller unmarshaller = unmarshallerFactory.getUnmarshaller(element);
-
-            XMLObject requestXmlObject = unmarshaller.unmarshall(element);
-
-            logger.debug("Received SAML Authn Request:");
-            logger.debug(domElementToString(element));
-
-            AuthnRequest authnRequest = (AuthnRequest) requestXmlObject;
-
-            return authnRequest;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return null;
+        return logoutRequest;
     }
 
     public static Response createSamlResponse(String issuerURL, String inResponseTo, String destinationURL, String requestIssuerUrl, String userEmailAddress, List<String> roles, String statusCodeURI) {
@@ -184,6 +164,56 @@ public class SAMLUtility {
         }
 
         return null;
+    }
+
+    public static LogoutRequest createLogoutRequest(String issuerURL, String username, List<String> sessionIndexes) {
+        try {
+            DefaultBootstrap.bootstrap();
+        } catch (Exception e ){
+            e.printStackTrace();
+        }
+
+        // Create LogoutRequest
+        LogoutRequestBuilder logoutRequestBuilder = new LogoutRequestBuilder();
+        LogoutRequest logoutRequest = logoutRequestBuilder.buildObject();
+
+        // Generate random UUID and append it to 'id'
+        String requestID = "id" + UUID.randomUUID().toString();
+
+        // ID
+        logoutRequest.setID(requestID);
+
+        // SAML Version - REQ
+        logoutRequest.setVersion(SAMLVersion.VERSION_20);
+
+        //The time instant of issue in UTC - REQ
+        logoutRequest.setIssueInstant(DateTime.now());
+
+        // Build Issuer
+        IssuerBuilder issuerBuilder = new IssuerBuilder();
+        Issuer issuer = issuerBuilder.buildObject();
+        issuer.setValue(issuerURL);
+
+        logoutRequest.setIssuer(issuer);
+
+        // Build NameID
+        NameIDBuilder nameIDBuilder = new NameIDBuilder();
+        NameID nameID = nameIDBuilder.buildObject();
+        nameID.setFormat(NAME_ID_POLICY_FORMAT_EMAIL_ADDRESS);
+        nameID.setValue(username);
+
+        logoutRequest.setNameID(nameID);
+
+        // Build SessionIndexes
+        for (String sessionIdx : sessionIndexes) {
+            SessionIndexBuilder sessionIndexBuilder = new SessionIndexBuilder();
+            SessionIndex sessionIndex = sessionIndexBuilder.buildObject();
+            sessionIndex.setSessionIndex(sessionIdx);
+
+            logoutRequest.getSessionIndexes().add(sessionIndex);
+        }
+
+        return logoutRequest;
     }
 
     //Status
@@ -356,6 +386,39 @@ public class SAMLUtility {
             encodedSAMLMessage = URLEncoder.encode(encodedSAMLMessage, "UTF-8").trim();
 
             return encodedSAMLMessage;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    private static XMLObject convertToXMLObject(String raw) {
+        try {
+            DefaultBootstrap.bootstrap();
+
+            // not needed if received through GET request as parameter
+            // String decoded = URLDecoder.decode(request,"UTF-8");
+
+            byte[] decodedSamlAsBytes = Base64.decode(raw);
+
+            byte[] inflated = inflate(decodedSamlAsBytes, true);
+
+            // Get parser pool manager
+            BasicParserPool ppMgr = new BasicParserPool();
+            ppMgr.setNamespaceAware(true);
+
+            // Parse metadata file
+            InputStream in = new ByteArrayInputStream(inflated);
+            Document document = ppMgr.parse(in);
+            Element element = document.getDocumentElement();
+
+            UnmarshallerFactory unmarshallerFactory = Configuration.getUnmarshallerFactory();
+            Unmarshaller unmarshaller = unmarshallerFactory.getUnmarshaller(element);
+
+            XMLObject xmlObject = unmarshaller.unmarshall(element);
+
+            return xmlObject;
         } catch (Exception e) {
             e.printStackTrace();
         }
